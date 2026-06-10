@@ -85,17 +85,10 @@ def parse_positions(text):
     return out[:6]
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--cluster-data", default=str(DEF_CLUSTER))
-    ap.add_argument("--thinkers", default=str(DEF_THINKERS))
-    ap.add_argument("--out", default=str(ROOT / "index.html"))
-    args = ap.parse_args()
-
-    cluster = json.loads(Path(args.cluster_data).read_text(encoding="utf-8"))
-    beliefs = cluster["beliefs"]
-    thinkers = json.loads(Path(args.thinkers).read_text(encoding="utf-8"))
-
+def build_universes(beliefs, thinkers):
+    """Seed per-thinker universes from the cluster beliefs + thinkers corpus.
+    Shared by the 2D map (this script) and the 3D demo (jarred-belief-universe-3d).
+    Returns (universes, matched_shared, unmatched_shared)."""
     # belief lookup by normalized title AND by Notion url slug (titles drift)
     by_key = {}
     for bid, b in beliefs.items():
@@ -147,6 +140,20 @@ def main():
             "notes": t.get("quotes", []) or [],
             "seeded": True,
         }
+    return universes, matched_shared, unmatched_shared
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--cluster-data", default=str(DEF_CLUSTER))
+    ap.add_argument("--thinkers", default=str(DEF_THINKERS))
+    ap.add_argument("--out", default=str(ROOT / "index.html"))
+    args = ap.parse_args()
+
+    cluster = json.loads(Path(args.cluster_data).read_text(encoding="utf-8"))
+    beliefs = cluster["beliefs"]
+    thinkers = json.loads(Path(args.thinkers).read_text(encoding="utf-8"))
+    universes, matched_shared, unmatched_shared = build_universes(beliefs, thinkers)
 
     html = TEMPLATE.read_text(encoding="utf-8")
     for rx, label, blob in (
